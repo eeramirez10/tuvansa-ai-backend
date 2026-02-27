@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ExtractionJobStatus {
+  queued
+  processing
+  completed
+  failed
+}
+
+enum ExtractionJobInputType {
+  file
+  text
+}
+
+enum ExtractionJobSource {
+  email
+  whatsapp
+  manual
+  file
+}
+
+model ExtractionJob {
+  id           String              @id @default(uuid())
+  fileName     String              @map("file_name")
+  filePath     String              @map("file_path")
+  status       ExtractionJobStatus @default(queued)
+  progress     Int                 @default(0)
+  resultJson   Json?               @map("result_json")
+  errorMessage String?             @map("error_message")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+  startedAt    DateTime?           @map("started_at")
+  completedAt  DateTime?           @map("completed_at")
+
+  inputType ExtractionJobInputType @default(file) @map("input_type")
+  inputText String?   @db.Text @map("input_text")
+  source ExtractionJobSource?    @default(file) @map("source")
+
+  @@map("extraction_jobs")
+}

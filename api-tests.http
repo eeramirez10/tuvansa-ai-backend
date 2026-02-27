@@ -1,0 +1,92 @@
+@baseUrl = http://localhost:4500
+@xlsxFile = /Users/erick/Documents/dev/documentos/test.xlsx
+@pdfFile = /Users/erick/Documents/dev/documentos/SOLICITUD DE MATERIALES INSTALACION RED DE HIDRANTES INTERIORES PARQUE MONTERREY NAVE 1 21-08-24.pdf
+@jobId = 3d5ef6de-ca9c-4687-a38f-177f77f526a2
+
+### Health Check
+GET {{baseUrl}}/health
+
+### ------------------------------------------------------------
+### JOBS ASINCRONOS - ARCHIVO
+### ------------------------------------------------------------
+
+### Crear Job desde XLSX (202)
+POST {{baseUrl}}/api/extract/jobs
+Content-Type: multipart/form-data; boundary=BoundaryXlsx
+
+--BoundaryXlsx
+Content-Disposition: form-data; name="file"; filename="test.xlsx"
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+
+< {{xlsxFile}}
+--BoundaryXlsx--
+
+### Crear Job desde PDF (202)
+# @name createPdfJob
+POST {{baseUrl}}/api/extract/jobs
+Content-Type: multipart/form-data; boundary=BoundaryPdf
+
+--BoundaryPdf
+Content-Disposition: form-data; name="file"; filename="cotizacion.pdf"
+Content-Type: application/pdf
+
+< {{pdfFile}}
+--BoundaryPdf--
+
+### Consultar estatus del Job (usa @jobId o el job_id de la respuesta anterior)
+GET {{baseUrl}}/api/extract/jobs/{{jobId}}/status
+
+### Consultar resultado del Job (200 si termino, 202 si sigue en proceso)
+GET {{baseUrl}}/api/extract/jobs/{{jobId}}/result
+
+### ------------------------------------------------------------
+### JOBS ASINCRONOS - TEXTO (correo / whatsapp)
+### ------------------------------------------------------------
+
+### Crear Job desde texto (email)
+# @name createTextJobEmail
+POST {{baseUrl}}/api/extract/jobs/text
+Content-Type: application/json
+
+{
+  "text": "Buen dia equipo Tuvansa,\n\nPor favor apoyarnos con cotizacion para el proyecto de proteccion contra incendio de la nave 3. Requerimos los siguientes materiales:\n\n1) Tuberia acero al carbon sin costura 4\" ced. 40 - 180 metros.\n2) Tuberia acero al carbon 2-1/2\" ced. 40 - 96 m.\n3) Valvula mariposa ranurada 4\" marca Victaulic (o equivalente) - 12 pzas.\n4) Valvula check 2\" roscada - 18 piezas.\n5) Codo ranurado 4\" x 90 grados - 24 pzas.\n6) Tee mecanica ranurada 4\" x 2-1/2\" - 16 pzas.\n7) Cople rigido ranurado estilo 07 de 4\" - 60 pzas.\n8) Niple roscado negro 1\" x 4\" - 40 pzas.\n9) Reduccion bushing 1-1/2\" x 1\" - 30 pzas.\n10) Soporteria tipo abrazadera para tuberia de 4\" - 110 pzas.\n\nAdicional, considerar:\n- 20 tramos de tuberia 6\" (si lo manejan en tramos).\n- 150 FT de tuberia 1-1/2\" para linea de prueba.\n- 8 SE de conexiones especiales para manifold de bomba.\n\nFavor de incluir tiempos de entrega y disponibilidad en sucursal Monterrey. Si algun item no lo tienen en stock, incluir tiempo estimado de resurtido.\n\nQuedo atento.",
+  "source": "email"
+}
+
+### Crear Job desde texto (whatsapp)
+# @name createTextJobWhatsapp
+POST {{baseUrl}}/api/extract/jobs/text
+Content-Type: application/json
+
+{
+  "text": "Hola buen dia! me ayudas a cotizar esto porfa para hoy?\n\n- tubo 4 pulg ced 40: 120 m\n- tubo 3 pulg ced 40: 75 metros\n- valvula check 2\": 25 pzas\n- valvula compuerta OS&Y bridada 4\": 6 pzas\n- cople ranurado 4\": 40 pz\n- tee ranurada 4x2 1/2: 14 pzas\n- codo 90 ranurado 4\": 20 pzas\n- niple 1\" x 8\": 35 pzas\n- reduccion bushing 2\"x1\": 22 piezas\n- manometro 0-300 psi 1/4\": 10 pzas\n\ntambien agrega por favor:\n- 300 ft de tuberia 1\" negra\n- 12 tr de tuberia 2\" (tramos)\n- 5 se de valvulas de seccionamiento\n\nsi tienes victaulic y cifunsa mejor, y si no hay stock pon tiempo de entrega aprox. gracias!",
+  "source": "whatsapp"
+}
+
+### Consultar estatus de Job de texto
+GET {{baseUrl}}/api/extract/jobs/{{jobId}}/status
+
+### Consultar resultado de Job de texto
+GET {{baseUrl}}/api/extract/jobs/{{jobId}}/result
+
+### ------------------------------------------------------------
+### CASOS DE ERROR ESPERADOS (400/404)
+### ------------------------------------------------------------
+
+### Error: texto vacio
+POST {{baseUrl}}/api/extract/jobs/text
+Content-Type: application/json
+
+{
+  "text": "   ",
+  "source": "manual"
+}
+
+### Error: sin archivo
+POST {{baseUrl}}/api/extract/jobs
+Content-Type: application/json
+
+{}
+
+### Error: job inexistente
+GET {{baseUrl}}/api/extract/jobs/00000000-0000-0000-0000-000000000000/status
