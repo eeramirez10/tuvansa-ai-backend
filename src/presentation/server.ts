@@ -20,11 +20,16 @@ import { GetExtractionJobStatusUseCase } from "../domain/use-cases/extraction-jo
 import { PostgresqlExtractionJobDatasource } from "../infrastructure/datasources/postgresql-extraction-job.datasource";
 import { PostgresqlExtractionJobRepositoryimpl } from "../infrastructure/repositories/postgresql-extraction-job.repository-impl";
 import { QuoteExtractionJobsController } from "./quote-extraction-job/controller";
-import { QuoteExtractionJobsRoutes } from "./quote-extraction-job/routes";
+
 import { ProcessExtractionJobUseCase } from "../domain/use-cases/extraction-job/process-extraction-job.use-case";
 import { envs } from "../config/envs";
 import { CreateTextExtractionJobUseCase } from "../domain/use-cases/extraction-job/create-text-extraction-job.use-case";
 import { ExtractQuoteItemsFromTextUseCase } from "../domain/use-cases/extract-quote-items-from-text.use-case";
+import { QuoteExtractionJobsRoutes } from "./quote-extraction-job/routes.job";
+import { OpenAiMissingProductsNormalizerService } from "../infrastructure/ai/openai-missing-products-normalizer.service";
+import { NormalizeMissingProductsUseCase } from "../domain/use-cases/normalize-missing-products.use-case";
+import { MissingProductsNormalizationController } from "./missing-products-normalization/controller";
+import { MissingProductsNormalizationRoutes } from "./missing-products-normalization/routes";
 
 export class Server {
   private readonly app = express();
@@ -62,9 +67,16 @@ export class Server {
       quantityNormalizer,
       languageDetector,
     );
+    const missingProductsNormalizer = new OpenAiMissingProductsNormalizerService(
+      openAiApiKey,
+      openAiModel,
+      unitNormalizer,
+      quantityNormalizer,
+    );
 
     const useCase = new ExtractQuoteItemsUseCase(documentExtractor, aiExtractor);
     const extractQuoteItemsFromTextUseCase = new ExtractQuoteItemsFromTextUseCase(aiExtractor);
+    const normalizeMissingProductsUseCase = new NormalizeMissingProductsUseCase(missingProductsNormalizer);
 
 
     const extractionJobDatasource = new PostgresqlExtractionJobDatasource();
@@ -97,11 +109,20 @@ export class Server {
 
     const quoteExtractionJobsRoutes = new QuoteExtractionJobsRoutes(quoteExtractionJobsController);
 
-
+    const missingProductsNormalizationController = new MissingProductsNormalizationController(
+      normalizeMissingProductsUseCase,
+    );
+    const missingProductsNormalizationRoutes = new MissingProductsNormalizationRoutes(
+      missingProductsNormalizationController,
+    );
 
     const controller = new QuoteExtractionController(useCase);
     const quoteExtractionRoutes = new QuoteExtractionRoutes(controller);
-    const appRoutes = new AppRoutes(quoteExtractionRoutes, quoteExtractionJobsRoutes);
+    const appRoutes = new AppRoutes(
+      quoteExtractionRoutes,
+      quoteExtractionJobsRoutes,
+      missingProductsNormalizationRoutes,
+    );
 
 
 

@@ -90,3 +90,34 @@ Content-Type: application/json
 
 ### Error: job inexistente
 GET {{baseUrl}}/api/extract/jobs/00000000-0000-0000-0000-000000000000/status
+
+### ------------------------------------------------------------
+### NORMALIZAR PRODUCTOS FALTANTES (IA)
+### ------------------------------------------------------------
+
+### Normalizar items para alta local temporal
+POST {{baseUrl}}/api/products/normalize-missing
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "item_id": "tmp_001",
+      "description_original": "Te mecanica roscada Mca. Victaulic Estilo 920N 4\" x 1\"",
+      "cantidad": 2,
+      "unidad_original": "PZAS"
+    },
+    {
+      "item_id": "tmp_002",
+      "description_original": "Niple roscado negro con costura ced. 40 1-1/2\" x 30 cm.",
+      "cantidad": null,
+      "unidad_original": null
+    },
+    {
+      "item_id": "tmp_003",
+      "description_original": "TUBO DE ACERO AL CARBON CED 40 4\" 120 MTS",
+      "cantidad": 120,
+      "unidad_original": "MTS"
+    }
+  ]
+}
