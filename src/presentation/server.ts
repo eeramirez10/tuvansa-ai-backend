@@ -30,6 +30,13 @@ import { OpenAiMissingProductsNormalizerService } from "../infrastructure/ai/ope
 import { NormalizeMissingProductsUseCase } from "../domain/use-cases/normalize-missing-products.use-case";
 import { MissingProductsNormalizationController } from "./missing-products-normalization/controller";
 import { MissingProductsNormalizationRoutes } from "./missing-products-normalization/routes";
+import { SearchSimilarProductsUseCase } from "../domain/use-cases/search-similar-products.use-case";
+import { VoyageTextEmbeddingService } from "../infrastructure/ai/voyage-text-embedding.service";
+import { PineconeSemanticProductDatasource } from "../infrastructure/datasources/pinecone-semantic-product.datasource";
+import { SemanticProductRepositoryImpl } from "../infrastructure/repositories/semantic-product.repository-impl";
+import { ErpBranchProductLookupService } from "../infrastructure/http/erp-branch-product-lookup.service";
+import { AiProductsController } from "./ai-products/controller";
+import { AiProductsRoutes } from "./ai-products/routes";
 
 export class Server {
   private readonly app = express();
@@ -43,12 +50,15 @@ export class Server {
     this.app.use(cors());
     this.app.use(express.json({ limit: "2mb" }));
 
-    const openAiApiKey = process.env.OPENAI_API_KEY;
-    if (!openAiApiKey) {
-      throw new Error("Falta OPENAI_API_KEY en variables de entorno.");
-    }
-
-    const openAiModel = process.env.OPENAI_MODEL ?? "gpt-5-nano";
+    const openAiApiKey = envs.openAiApiKey;
+    const openAiModel = envs.openAiModel;
+    const voyageApiKey = envs.voyageApiKey;
+    const voyageModel = envs.voyageModel;
+    const pineconeApiKey = envs.pineconeApiKey;
+    const pineconeIndex = envs.pineconeIndex;
+    const pineconeNamespace = envs.pineconeNamespace;
+    const erpProductsBaseUrl = envs.erpProductsBaseUrl;
+    const erpProductsTimeoutMs = envs.erpProductsTimeoutMs;
 
     const detector = new DocumentTypeDetector();
     const xlsxReader = new XlsxTextReader();
@@ -116,12 +126,33 @@ export class Server {
       missingProductsNormalizationController,
     );
 
+    const textEmbeddingService = new VoyageTextEmbeddingService(voyageApiKey, voyageModel);
+    const semanticProductDatasource = new PineconeSemanticProductDatasource(
+      pineconeApiKey,
+      pineconeIndex,
+    );
+    const semanticProductRepository = new SemanticProductRepositoryImpl(semanticProductDatasource);
+    const erpBranchProductLookupService = new ErpBranchProductLookupService(
+      erpProductsBaseUrl,
+      Number.isFinite(erpProductsTimeoutMs) && erpProductsTimeoutMs > 0 ? erpProductsTimeoutMs : 3500,
+    );
+
+    const searchSimilarProductsUseCase = new SearchSimilarProductsUseCase(
+      textEmbeddingService,
+      semanticProductRepository,
+      erpBranchProductLookupService,
+      pineconeNamespace,
+    );
+    const aiProductsController = new AiProductsController(searchSimilarProductsUseCase);
+    const aiProductsRoutes = new AiProductsRoutes(aiProductsController);
+
     const controller = new QuoteExtractionController(useCase);
     const quoteExtractionRoutes = new QuoteExtractionRoutes(controller);
     const appRoutes = new AppRoutes(
       quoteExtractionRoutes,
       quoteExtractionJobsRoutes,
       missingProductsNormalizationRoutes,
+      aiProductsRoutes,
     );
 
 
