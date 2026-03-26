@@ -1,4 +1,5 @@
 export interface BranchProductLookupResult {
+  branchCode: string;
   id: string;
   code: string;
   ean: string;

@@ -1,4 +1,5 @@
 interface BranchProductSnapshot {
+  branchCode: string;
   id: string;
   code: string;
   ean: string;
@@ -23,6 +24,8 @@ interface SearchSimilarProductsResponseItem {
   branchCode: string;
   branchProductCode: string | null;
   availableInBranch: boolean | null;
+  availableInAnyBranch: boolean | null;
+  resolvedBranchCode: string | null;
   branchProduct: BranchProductSnapshot | null;
 }
 
@@ -63,6 +66,8 @@ export class SearchSimilarProductsResponseDto {
       branchCode: string;
       branchProductCode: string | null;
       availableInBranch: boolean | null;
+      availableInAnyBranch: boolean | null;
+      resolvedBranchCode: string | null;
       branchProduct: BranchProductSnapshot | null;
     }>;
   } {
@@ -86,6 +91,8 @@ export class SearchSimilarProductsResponseDto {
         branchCode: item.branchCode,
         branchProductCode: item.branchProductCode,
         availableInBranch: item.availableInBranch,
+        availableInAnyBranch: item.availableInAnyBranch,
+        resolvedBranchCode: item.resolvedBranchCode,
         branchProduct: item.branchProduct,
       })),
     };

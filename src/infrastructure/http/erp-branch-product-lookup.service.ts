@@ -29,6 +29,8 @@ interface ErpProductRow {
 }
 
 export class ErpBranchProductLookupService implements BranchProductLookupPort {
+  private readonly supportedBranchCodes = ["01", "02", "03", "04", "05", "06", "07"];
+
   constructor(
     private readonly baseUrl: string | undefined,
     private readonly timeoutMs: number = 3500,
@@ -44,6 +46,39 @@ export class ErpBranchProductLookupService implements BranchProductLookupPort {
     const baseUrl = this.baseUrl?.trim().replace(/\/+$/, "");
     if (!baseUrl) return null;
 
+    const lookupValue = ean.trim();
+    if (!lookupValue) return null;
+
+    const requestedBranch = branchCode.trim();
+    const branchOrder = this.buildBranchOrder(requestedBranch);
+
+    for (const currentBranchCode of branchOrder) {
+      const found = await this.lookupInBranch(baseUrl, lookupValue, currentBranchCode);
+      if (found) return found;
+    }
+
+    return null;
+  }
+
+  private buildBranchOrder(requestedBranch: string): string[] {
+    const list: string[] = [];
+    if (/^\d{2}$/.test(requestedBranch)) {
+      list.push(requestedBranch);
+    }
+
+    for (const candidate of this.supportedBranchCodes) {
+      if (list.includes(candidate)) continue;
+      list.push(candidate);
+    }
+
+    return list;
+  }
+
+  private async lookupInBranch(
+    baseUrl: string,
+    ean: string,
+    branchCode: string,
+  ): Promise<BranchProductLookupResult | null> {
     const url = `${baseUrl}/by-ean/${encodeURIComponent(ean)}/branch/${encodeURIComponent(branchCode)}`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
@@ -69,6 +104,7 @@ export class ErpBranchProductLookupService implements BranchProductLookupPort {
       if (!parsedCode) return null;
 
       return {
+        branchCode,
         id: this.asString(this.readFirst(row, ["id", "ID"])) ?? parsedCode,
         code: parsedCode,
         ean: parsedEan,

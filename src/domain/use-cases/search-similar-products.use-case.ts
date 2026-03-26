@@ -11,6 +11,7 @@ import { SemanticProductRepository } from "../repositories/semantic-product.repo
 
 interface RankedCandidate {
   ean: string;
+  lookupKeys: string[];
   productId: string | null;
   description: string;
   originalDescription: string | null;
@@ -63,8 +64,10 @@ export class SearchSimilarProductsUseCase {
     const bestByEan = new Map<string, RankedCandidate>();
 
     for (const match of matches) {
-      const ean = (match.metadata.ean ?? match.metadata.id ?? match.id).trim();
-      if (!ean) continue;
+      const lookupKeys = this.buildLookupKeys(match);
+      if (lookupKeys.length === 0) continue;
+
+      const ean = lookupKeys[0];
 
       const description = match.metadata.description ?? match.metadata.originalDescription ?? ean;
       const originalDescription = match.metadata.originalDescription;
@@ -79,6 +82,7 @@ export class SearchSimilarProductsUseCase {
       if (!previous || finalScore > previous.finalScore) {
         bestByEan.set(ean, {
           ean,
+          lookupKeys,
           productId: match.metadata.id ?? match.id,
           description,
           originalDescription,
@@ -90,6 +94,20 @@ export class SearchSimilarProductsUseCase {
     }
 
     return Array.from(bestByEan.values()).sort((a, b) => b.finalScore - a.finalScore);
+  }
+
+  private buildLookupKeys(match: SemanticProductMatch): string[] {
+    const candidates = [match.metadata.ean, match.metadata.id, match.id];
+    const unique = new Set<string>();
+
+    for (const raw of candidates) {
+      const value = typeof raw === "string" ? raw.trim() : "";
+      if (!value) continue;
+      if (unique.has(value)) continue;
+      unique.add(value);
+    }
+
+    return Array.from(unique);
   }
 
   private computeRuleBasedScore(
@@ -300,16 +318,23 @@ export class SearchSimilarProductsUseCase {
         branchCode,
         branchProductCode: null,
         availableInBranch: null,
+        availableInAnyBranch: null,
+        resolvedBranchCode: null,
         branchProduct: null,
       }));
     }
 
     const items = await Promise.all(
       ranked.map(async (candidate) => {
-        const branchProduct = await this.branchLookupPort.findByEanAndBranch(candidate.ean, branchCode);
+        let branchProduct = null;
+        for (const lookupKey of candidate.lookupKeys) {
+          branchProduct = await this.branchLookupPort.findByEanAndBranch(lookupKey, branchCode);
+          if (branchProduct) break;
+        }
 
         const branchSnapshot: BranchProductSnapshot | null = branchProduct
           ? {
+              branchCode: branchProduct.branchCode,
               id: branchProduct.id,
               code: branchProduct.code,
               ean: branchProduct.ean,
@@ -334,7 +359,9 @@ export class SearchSimilarProductsUseCase {
           reasons: candidate.reasons,
           branchCode,
           branchProductCode: branchProduct?.code ?? null,
-          availableInBranch: branchProduct ? true : false,
+          availableInBranch: branchSnapshot ? branchSnapshot.branchCode === branchCode : false,
+          availableInAnyBranch: branchSnapshot ? true : false,
+          resolvedBranchCode: branchSnapshot?.branchCode ?? null,
           branchProduct: branchSnapshot,
         };
       }),
