@@ -14,6 +14,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@pinecone-database/pinecone": "^7.1.0",
     "@prisma/adapter-pg": "^7.4.1",
     "@prisma/client": "^7.4.1",
     "cors": "^2.8.6",
@@ -24,6 +25,7 @@
     "openai": "^6.25.0",
     "pdfjs-dist": "^5.4.624",
     "pg": "^8.19.0",
+    "voyageai": "^0.2.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

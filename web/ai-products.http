@@ -1,0 +1,38 @@
+@baseUrl = http://localhost:4500/api
+
+### Semantic search by customer description
+POST {{baseUrl}}/ai/products/similar
+Content-Type: application/json
+
+{
+  "query": "TUBO DE ACERO AL CARBON SIN COSTURA 610 X 30.9 MM. (24 CED.80)",
+  "branchCode": "01"
+}
+
+### Semantic search with custom tuning and metadata filters
+POST {{baseUrl}}/ai/products/similar
+Content-Type: application/json
+
+{
+  "query": "poste indicador vertical victaulic serie 774 ranurado de 6 pulgadas",
+  "branchCode": "02",
+  "topK": 35,
+  "limit": 8,
+  "minScore": 0.72,
+  "filters": {
+    "tipo": "ACCESORIOS",
+    "product": "POSTE"
+  }
+}
+
+### Semantic search for plastic pipe
+POST {{baseUrl}}/ai/products/similar
+Content-Type: application/json
+
+{
+  "query": "tubo ppr clase 16 de 1 1/2 en metros",
+  "branchCode": "03",
+  "filters": {
+    "material": "PLASTICO"
+  }
+}
