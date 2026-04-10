@@ -12,6 +12,7 @@ export class Envs {
   public readonly port:number
   public readonly openAiApiKey: string;
   public readonly openAiModel: string;
+  public readonly openAiOcrModel: string;
   public readonly voyageApiKey?: string;
   public readonly voyageModel: string;
   public readonly pineconeApiKey?: string;
@@ -26,6 +27,7 @@ export class Envs {
     this.port = get('PORT').asPortNumber() ?? 3000
     this.openAiApiKey = get('OPENAI_API_KEY').required().asString();
     this.openAiModel = get('OPENAI_MODEL').default('gpt-5-nano').asString();
+    this.openAiOcrModel = get('OPENAI_OCR_MODEL').default('gpt-4o-mini').asString();
     this.voyageApiKey = get('VOYAGEAI_API_KEY').asString() ?? undefined;
     this.voyageModel = get('VOYAGEAI_MODEL').default('voyage-3-large').asString();
     this.pineconeApiKey = get('PINECONE_API_KEY').asString() ?? undefined;

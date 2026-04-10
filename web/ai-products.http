@@ -5,7 +5,7 @@ POST {{baseUrl}}/ai/products/similar
 Content-Type: application/json
 
 {
-  "query": "TUBO DE ACERO AL CARBON SIN COSTURA 610 X 30.9 MM. (24 CED.80)",
+  "query": "TUBO DE ACERO AL CARBON SIN COSTURA 610 X 17.5 MM. (24 CED. 40)",
   "branchCode": "01"
 }
 

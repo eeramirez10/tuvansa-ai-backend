@@ -4,17 +4,25 @@ import { UploadQuoteFileDto } from "../../domain/dtos/upload-quote-file.dto";
 import { SupportedFileType } from "../../domain/value-objects/supported-file-type";
 import { DocumentTypeDetector } from "./document-type-detector";
 import { PdfDigitalTextReader } from "./pdf-digital-text-reader";
+import { PdfOcrTextReader } from "./pdf-ocr-text-reader";
 import { XlsxTextReader } from "./xlsx-text-reader";
 
 export class QuoteDocumentTextExtractorService implements DocumentTextExtractorPort {
   private readonly detector: DocumentTypeDetector;
   private readonly xlsxReader: XlsxTextReader;
   private readonly pdfReader: PdfDigitalTextReader;
+  private readonly pdfOcrReader?: PdfOcrTextReader;
 
-  constructor(detector: DocumentTypeDetector, xlsxReader: XlsxTextReader, pdfReader: PdfDigitalTextReader) {
+  constructor(
+    detector: DocumentTypeDetector,
+    xlsxReader: XlsxTextReader,
+    pdfReader: PdfDigitalTextReader,
+    pdfOcrReader?: PdfOcrTextReader,
+  ) {
     this.detector = detector;
     this.xlsxReader = xlsxReader;
     this.pdfReader = pdfReader;
+    this.pdfOcrReader = pdfOcrReader;
   }
 
   public async extract(file: UploadQuoteFileDto): Promise<DocumentTextDto> {
@@ -30,6 +38,20 @@ export class QuoteDocumentTextExtractorService implements DocumentTextExtractorP
       const pdfReadResult = await this.pdfReader.read(file.getBuffer());
       textContent = pdfReadResult.textContent;
       extractionHints = pdfReadResult.extractionHints;
+
+      if (this.shouldUseOcrFallback(textContent) && this.pdfOcrReader) {
+        try {
+          const ocrText = await this.pdfOcrReader.read(file.getBuffer());
+          if (!this.shouldUseOcrFallback(ocrText)) {
+            textContent = ocrText;
+            extractionHints = null;
+          }
+        } catch {
+          throw new Error(
+            "No se pudo extraer texto del PDF digital y el OCR fallo. Verifica que el archivo sea legible.",
+          );
+        }
+      }
     }
 
     if (textContent.trim().length < 8) {
@@ -38,11 +60,14 @@ export class QuoteDocumentTextExtractorService implements DocumentTextExtractorP
       );
     }
 
-
     return new DocumentTextDto({
       textContent,
       fileType,
       extractionHints,
     });
+  }
+
+  private shouldUseOcrFallback(textContent: string): boolean {
+    return textContent.trim().length < 8;
   }
 }

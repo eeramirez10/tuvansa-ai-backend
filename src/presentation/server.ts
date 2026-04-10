@@ -6,6 +6,7 @@ import { OpenAiQuoteAiExtractorService } from "../infrastructure/ai/openai-quote
 import { DocumentTypeDetector } from "../infrastructure/files/document-type-detector";
 import { PdfDigitalReconciliationService } from "../infrastructure/files/pdf-digital-reconciliation.service";
 import { PdfDigitalTextReader } from "../infrastructure/files/pdf-digital-text-reader";
+import { PdfOcrTextReader } from "../infrastructure/files/pdf-ocr-text-reader";
 import { QuoteDocumentTextExtractorService } from "../infrastructure/files/quote-document-text-extractor.service";
 import { XlsxTextReader } from "../infrastructure/files/xlsx-text-reader";
 import { LanguageDetectorService } from "../infrastructure/language/language-detector.service";
@@ -52,6 +53,7 @@ export class Server {
 
     const openAiApiKey = envs.openAiApiKey;
     const openAiModel = envs.openAiModel;
+    const openAiOcrModel = envs.openAiOcrModel;
     const voyageApiKey = envs.voyageApiKey;
     const voyageModel = envs.voyageModel;
     const pineconeApiKey = envs.pineconeApiKey;
@@ -64,7 +66,13 @@ export class Server {
     const xlsxReader = new XlsxTextReader();
     const pdfReconciler = new PdfDigitalReconciliationService();
     const pdfReader = new PdfDigitalTextReader(pdfReconciler);
-    const documentExtractor = new QuoteDocumentTextExtractorService(detector, xlsxReader, pdfReader);
+    const pdfOcrReader = new PdfOcrTextReader(openAiApiKey, openAiOcrModel);
+    const documentExtractor = new QuoteDocumentTextExtractorService(
+      detector,
+      xlsxReader,
+      pdfReader,
+      pdfOcrReader,
+    );
 
     const unitNormalizer = new UnitNormalizerService();
     const quantityNormalizer = new QuantityNormalizerService();
